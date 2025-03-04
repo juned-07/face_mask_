@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Choice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .choice-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .choice-box {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            width: 250px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .choice-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .choice-box h2 {
+            margin-top: 0;
+            color: #444;
+        }
+        .choice-box p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        #login-form {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            width: 300px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .video-container {
+            margin-top: 20px;
+            width: 100%;
+            height: 300px;
+            position: relative;
+            overflow: hidden;
+            background-color: #000;
+            border-radius: 4px;
+        }
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #capture-btn {
+            margin-top: 10px;
+            background-color: #2196F3;
+        }
+        #capture-btn:hover {
+            background-color: #0b7dda;
+        }
+        .back-link {
+            margin-top: 20px;
+            color: #2196F3;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .register-link {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #d9534f;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .register-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Choose Login Method</h1>
+
+    <div class="choice-container">
+        <div class="choice-box" onclick="selectLoginMode('masked')">
+            <h2>Login with Mask</h2>
+            <p>Choose this if you're wearing a mask.</p>
+        </div>
+        <div class="choice-box" onclick="selectLoginMode('unmasked')">
+            <h2>Login without Mask</h2>
+            <p>Choose this if you're not wearing a mask.</p>
+        </div>
+    </div>
+
+    <form id="login-form" action="/login" method="post">
+        <input type="hidden" id="login-mode" name="login_mode" value="masked">
+
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+
+        <div class="video-container">
+            <video id="video" autoplay></video>
+        </div>
+
+        <button type="button" id="capture-btn">Capture Face</button>
+        <input type="hidden" id="face-image" name="face_image">
+
+        <button type="submit" id="submit-btn" style="display:none; margin-top:10px;">Login</button>
+    </form>
+
+    <a href="/" class="back-link">Back to Home</a>
+
+    <!-- New User Registration Link -->
+    <a href="/register" class="register-link">New User? Register Here</a>
+
+    <script>
+        let selectedMode = 'masked';
+        let stream = null;
+        const video = document.getElementById('video');
+        const captureBtn = document.getElementById('capture-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const faceImageInput = document.getElementById('face-image');
+        const loginForm = document.getElementById('login-form');
+        const loginModeInput = document.getElementById('login-mode');
+
+        function selectLoginMode(mode) {
+            selectedMode = mode;
+            loginModeInput.value = mode;
+            loginForm.style.display = 'block';
+
+            // Start camera
+            startCamera();
+
+            // Scroll to form
+            loginForm.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                alert("Could not access camera. Please allow camera access and try again.");
+            }
+        }
+
+        captureBtn.addEventListener('click', () => {
+            // Create canvas and draw video frame
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert to base64
+            const image = canvas.toDataURL('image/jpeg');
+            faceImageInput.value = image;
+
+            // Show submit button
+            submitBtn.style.display = 'block';
+
+            // Visual feedback
+            captureBtn.textContent = 'Face Captured! (Click to retry)';
+        });
+
+        // Clean up video stream when page is unloaded
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input[type=text], input[type=password] {
+            display: block;
+            margin: 10px auto;
+            padding: 8px;
+            width: 80%;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #video {
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #canvas {
+            display: none;
+        }
+        .camera-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        .preview {
+            margin-top: 10px;
+            width: 200px;
+            height: 150px;
+            border: 1px solid #ddd;
+            display: inline-block;
+        }
+        a {
+            display: block;
+            margin-top: 20px;
+            color: #4CAF50;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Login with Face Recognition</h2>
+
+        <form id="loginForm" action="{{ url_for('login') }}" method="POST" enctype="multipart/form-data">
+            <input type="text" name="username" placeholder="Username" required><br>
+            <input type="password" name="password" placeholder="Password" required><br>
+
+            <input type="hidden" name="face_image" id="face_image_input">
+
+            <div class="camera-section">
+                <h3>Face Verification</h3>
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas"></canvas>
+                <div>
+                    <button type="button" id="capture-btn">Capture</button>
+                </div>
+                <img id="preview" class="preview">
+            </div>
+
+            <button type="submit" id="login-button" disabled>Login</button>
+        </form>
+
+        <a href="{{ url_for('register') }}">Register New Account</a>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const preview = document.getElementById('preview');
+        const faceInput = document.getElementById('face_image_input');
+        const loginBtn = document.getElementById('login-button');
+
+        // Start camera
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                alert("Cannot access camera. Please ensure your camera is connected and you've granted permission.");
+            }
+        }
+
+        // Capture image
+        captureBtn.addEventListener('click', function() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            // Display preview
+            preview.src = canvas.toDataURL('image/jpeg');
+
+            // Store in hidden input
+            faceInput.value = canvas.toDataURL('image/jpeg').split(',')[1];
+
+            // Enable login button
+            loginBtn.disabled = false;
+        });
+
+        // Start camera when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            startCamera();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 30px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input[type=text], input[type=password] {
+            display: block;
+            margin: 10px auto;
+            padding: 8px;
+            width: 80%;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .camera-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        #video-without-mask, #video-with-mask {
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #canvas-without-mask, #canvas-with-mask {
+            display: none;
+        }
+        h3 {
+            margin-top: 0;
+        }
+        .preview {
+            margin-top: 10px;
+            width: 200px;
+            height: 150px;
+            border: 1px solid #ddd;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Register with Face Recognition</h2>
+
+        <form id="registerForm" action="{{ url_for('register') }}" method="POST" enctype="multipart/form-data">
+            <input type="text" name="username" placeholder="Username" required><br>
+            <input type="password" name="password" placeholder="Password" required><br>
+
+            <input type="hidden" name="face_without_mask" id="face_without_mask_input">
+            <input type="hidden" name="face_with_mask" id="face_with_mask_input">
+
+            <div class="camera-section">
+                <h3>Face Without Mask</h3>
+                <video id="video-without-mask" autoplay playsinline></video>
+                <canvas id="canvas-without-mask"></canvas>
+                <div>
+                    <button type="button" id="capture-without-mask">Capture</button>
+                </div>
+                <img id="preview-without-mask" class="preview">
+            </div>
+
+            <div class="camera-section">
+                <h3>Face With Mask</h3>
+                <video id="video-with-mask" autoplay playsinline></video>
+                <canvas id="canvas-with-mask"></canvas>
+                <div>
+                    <button type="button" id="capture-with-mask">Capture</button>
+                </div>
+                <img id="preview-with-mask" class="preview">
+            </div>
+
+            <button type="submit" id="register-button" disabled>Register</button>
+        </form>
+        <p>Already have an account? <a href="{{ url_for('home') }}">Login here</a></p>
+    </div>
+
+    <script>
+        let withoutMaskCaptured = false;
+        let withMaskCaptured = false;
+
+        // Without mask camera
+        const videoWithoutMask = document.getElementById('video-without-mask');
+        const canvasWithoutMask = document.getElementById('canvas-without-mask');
+        const captureWithoutMaskBtn = document.getElementById('capture-without-mask');
+        const previewWithoutMask = document.getElementById('preview-without-mask');
+        const withoutMaskInput = document.getElementById('face_without_mask_input');
+
+        // With mask camera
+        const videoWithMask = document.getElementById('video-with-mask');
+        const canvasWithMask = document.getElementById('canvas-with-mask');
+        const captureWithMaskBtn = document.getElementById('capture-with-mask');
+        const previewWithMask = document.getElementById('preview-with-mask');
+        const withMaskInput = document.getElementById('face_with_mask_input');
+
+        const registerBtn = document.getElementById('register-button');
+
+        // Start camera for without mask
+        async function startCameraWithoutMask() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoWithoutMask.srcObject = stream;
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                alert("Cannot access camera. Please ensure your camera is connected and you've granted permission.");
+            }
+        }
+
+        // Start camera for with mask
+        async function startCameraWithMask() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoWithMask.srcObject = stream;
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                alert("Cannot access camera. Please ensure your camera is connected and you've granted permission.");
+            }
+        }
+
+        // Capture image without mask
+        captureWithoutMaskBtn.addEventListener('click', function() {
+            canvasWithoutMask.width = videoWithoutMask.videoWidth;
+            canvasWithoutMask.height = videoWithoutMask.videoHeight;
+            canvasWithoutMask.getContext('2d').drawImage(videoWithoutMask, 0, 0);
+
+            // Display preview
+            previewWithoutMask.src = canvasWithoutMask.toDataURL('image/jpeg');
+
+            // Store in hidden input
+            withoutMaskInput.value = canvasWithoutMask.toDataURL('image/jpeg').split(',')[1];
+            withoutMaskCaptured = true;
+
+            // Check if both photos are captured
+            checkBothCaptured();
+        });
+
+        // Capture image with mask
+        captureWithMaskBtn.addEventListener('click', function() {
+            canvasWithMask.width = videoWithMask.videoWidth;
+            canvasWithMask.height = videoWithMask.videoHeight;
+            canvasWithMask.getContext('2d').drawImage(videoWithMask, 0, 0);
+
+            // Display preview
+            previewWithMask.src = canvasWithMask.toDataURL('image/jpeg');
+
+            // Store in hidden input
+            withMaskInput.value = canvasWithMask.toDataURL('image/jpeg').split(',')[1];
+            withMaskCaptured = true;
+
+            // Check if both photos are captured
+            checkBothCaptured();
+        });
+
+        function checkBothCaptured() {
+            if (withoutMaskCaptured && withMaskCaptured) {
+                registerBtn.disabled = false;
+            }
+        }
+
+        // Start both cameras when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            startCameraWithoutMask();
+            startCameraWithMask();
+        });
+    </script>
+</body>
+</html>
